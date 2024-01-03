@@ -2,7 +2,7 @@
   "name": "detab--don-t-outdent-",
   "displayName": "Detab, Don't Outdent!",
   "description": "Hey there! I made this extension for my personal use. It's a simple tool that modifies the behavior of the Shift+Tab key combination in the editor. When activated, it adjusts the indentation of the current line based on the editor's tab settings. If you find it useful, it would bring me joy.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.85.0"
   },

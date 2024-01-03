@@ -1,52 +1,65 @@
 import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
+    console.log('Congratulations, your extension "detab--don-t-outdent-" is now active!');
 
-	console.log('Congratulations, your extension "detab--don-t-outdent-" is now active!');
-
-	let disposableShiftTab = vscode.commands.registerCommand('extension.shiftTab', () => {
+    let disposableShiftTab = vscode.commands.registerCommand('extension.shiftTab', () => {
         handleShiftTab();
     });
 
-	context.subscriptions.push(disposableShiftTab);
+    context.subscriptions.push(disposableShiftTab);
 }
 
 function handleShiftTab() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        return; // No active editor
+    }
+
+    editor.edit(editBuilder => {
+        editor.selections.forEach(selection => {
+            if (selection.isEmpty) {
+                // Handle single cursor movement
+                const position = selection.active;
+                modifyIndentationAtPosition(position, editBuilder);
+            } else {
+                // Handle selection modification
+                for (let i = selection.start.line; i <= selection.end.line; i++) {
+                    const position = new vscode.Position(i, selection.start.character);
+                    modifyIndentationAtPosition(position, editBuilder);
+                }
+            }
+        });
+    });
+}
+
+function modifyIndentationAtPosition(position: vscode.Position, editBuilder: vscode.TextEditorEdit) {
     const editorConfig = vscode.workspace.getConfiguration('editor');
     const tabSize = editorConfig.get<number>('tabSize', 4);
     const insertSpaces = editorConfig.get<boolean>('insertSpaces', true);
 
-    console.log('handleShiftTab function called');
+    const lineText = vscode.window.activeTextEditor?.document.lineAt(position.line).text;
+    if (!lineText) {
+        return;
+    }
 
-    const editor = vscode.window.activeTextEditor;
-    if (editor) {
-        const document = editor.document;
-        const selection = editor.selection;
-        const originalPosition = selection.start;
-
-        if (insertSpaces) {
-            const lineText = document.lineAt(originalPosition.line).text;
-            let spacesToRemove = 0;
-            for (let i = originalPosition.character - 1; i >= 0; i--) {
-                if (lineText[i] === ' ') {
-                    spacesToRemove++;
-                    if (spacesToRemove === tabSize) {
-                        break;
-                    }
-                } else {
+    if (insertSpaces) {
+        let spacesToRemove = 0;
+        for (let i = position.character - 1; i >= 0; i--) {
+            if (lineText[i] === ' ') {
+                spacesToRemove++;
+                if (spacesToRemove === tabSize) {
                     break;
                 }
+            } else {
+                break;
             }
-            const rangeToRemove = new vscode.Range(originalPosition.translate(0, -spacesToRemove), originalPosition);
-            editor.edit(editBuilder => {
-                editBuilder.delete(rangeToRemove);
-            });
-        } else {
-            const rangeToRemove = new vscode.Range(originalPosition.translate(0, -1), originalPosition);
-            editor.edit(editBuilder => {
-                editBuilder.delete(rangeToRemove);
-            });
         }
+        const rangeToRemove = new vscode.Range(position.translate(0, -spacesToRemove), position);
+        editBuilder.delete(rangeToRemove);
+    } else {
+        const rangeToRemove = new vscode.Range(position.translate(0, -1), position);
+        editBuilder.delete(rangeToRemove);
     }
 }
 
